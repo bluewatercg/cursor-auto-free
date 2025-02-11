@@ -211,6 +211,15 @@ def sign_up_account(browser, tab):
     logging.info(f"正在访问注册页面: {sign_up_url}")
     tab.get(sign_up_url)
 
+    # 初始化邮件服务
+    config = Config()
+    email_service = EmailServiceFactory.create_service(
+        config.email_service,
+        config.get_email_service_config()
+    )
+    # 设置要使用的邮箱地址
+    email_service.set_email_address(account)
+
     try:
         if tab.ele("@name=first_name"):
             logging.info("正在填写个人信息...")
@@ -222,19 +231,9 @@ def sign_up_account(browser, tab):
             logging.info(f"已输入姓氏: {last_name}")
             time.sleep(random.uniform(1, 3))
 
-            # 获取邮箱地址
-            config = Config()
-            email_service = EmailServiceFactory.create_service(
-                config.email_service,
-                config.get_email_service_config()
-            )
-            email_address = email_service.get_email_address()
-            if not email_address:
-                logging.error("获取邮箱地址失败")
-                return False
-
-            tab.actions.click("@name=email").input(email_address)
-            logging.info(f"已输入邮箱: {email_address}")
+            # 使用随机生成的邮箱地址
+            tab.actions.click("@name=email").input(account)
+            logging.info(f"已输入邮箱: {account}")
             time.sleep(random.uniform(1, 3))
 
             logging.info("提交个人信息...")
@@ -313,7 +312,7 @@ def sign_up_account(browser, tab):
         logging.error(f"获取账户额度信息失败: {str(e)}")
 
     logging.info("\n=== 注册完成 ===")
-    account_info = f"Cursor 账号信息:\n邮箱: {email_address}\n密码: {password}"
+    account_info = f"Cursor 账号信息:\n邮箱: {account}\n密码: {password}"
     logging.info(account_info)
     time.sleep(5)
     return True

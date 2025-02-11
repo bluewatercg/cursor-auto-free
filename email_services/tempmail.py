@@ -1,5 +1,4 @@
 from .base import EmailServiceBase
-from .utils import EmailGenerator
 import requests
 import re
 import time
@@ -18,26 +17,27 @@ class TempMailService(EmailServiceBase):
                 - api_domain: API域名
                 - admin_password: 管理员密码
                 - enable_prefix: 是否启用前缀
-                - mail_name: 邮箱名称
                 - mail_domain: 邮箱域名
         """
         self.api_domain = config["api_domain"]
         self.admin_password = config["admin_password"]
         self.mail_domain = config["mail_domain"]
         self.enable_prefix = config["enable_prefix"]
-        # 生成随机邮箱名
-        self.mail_name = EmailGenerator.generate_random_name()
         self.jwt_token = None
         self.email_address = None
+        self.session = requests.Session()
         
     def _create_mail_address(self) -> bool:
         """创建邮箱地址"""
         try:
+            # 从邮箱地址中提取用户名部分
+            username = self.email_address.split('@')[0]
+            
             res = requests.post(
                 f"https://{self.api_domain}/admin/new_address",
                 json={
                     "enablePrefix": self.enable_prefix,
-                    "name": self.mail_name,
+                    "name": username,
                     "domain": self.mail_domain,
                 },
                 headers={
@@ -49,12 +49,6 @@ class TempMailService(EmailServiceBase):
             if res.status_code == 200:
                 data = res.json()
                 self.jwt_token = data.get("jwt")
-                if self.enable_prefix:
-                    prefix = data.get("prefix", "")
-                    self.email_address = f"{prefix}{self.mail_name}@{self.mail_domain}"
-                else:
-                    self.email_address = f"{self.mail_name}@{self.mail_domain}"
-                logging.info(f"创建邮箱成功: {self.email_address}")
                 return bool(self.jwt_token)
             
             logging.error(f"创建邮箱失败: {res.text}")
@@ -112,15 +106,14 @@ class TempMailService(EmailServiceBase):
                 return None
                 
             # 尝试从邮件正文中提取验证码
-            # 使用新的正则表达式模式匹配6位数字验证码
             code_match = re.search(
-                r'Enter the code below.*?(\d{6})',
+                r"(?<![a-zA-Z@.])\b\d{6}\b",
                 mail_content,
-                re.DOTALL | re.IGNORECASE
+                re.DOTALL
             )
             
             if code_match:
-                return code_match.group(1)
+                return code_match.group()
                 
             logging.warning("未能在邮件中找到验证码")
             return None
@@ -133,9 +126,15 @@ class TempMailService(EmailServiceBase):
         """清理邮件，这个实现可能不需要清理"""
         return True
         
+    def set_email_address(self, email: str):
+        """设置要使用的邮箱地址"""
+        self.email_address = email
+        # 创建邮箱并获取 JWT token
+        if not self._create_mail_address():
+            raise Exception("创建邮箱地址失败")
+        
     def get_email_address(self) -> str:
-        """获取邮箱地址，如果还没有创建则先创建"""
+        """获取当前使用的邮箱地址"""
         if not self.email_address:
-            if not self._create_mail_address():
-                raise Exception("创建邮箱地址失败")
+            raise ValueError("邮箱地址未设置")
         return self.email_address 

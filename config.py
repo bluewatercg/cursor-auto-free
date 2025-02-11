@@ -38,6 +38,7 @@ class Config:
         self.temp_mail_plus_epin = os.getenv("TEMP_MAIL_PLUS_EPIN", "").strip()
         self.temp_mail_plus_domain = self.domain  # 使用相同的域名
         self.temp_mail_plus_api_domain = f"mail.{self.domain}"  # 使用相同的 API 域名
+        self.temp_mail_plus_ext = os.getenv("TEMP_MAIL_PLUS_EXT", "@mailto.plus").strip()
         
         # IMAP 配置 - 不依赖 CF Workers，需要完整的服务器配置
         self.imap_server = os.getenv("IMAP_SERVER", "").strip()
@@ -60,13 +61,14 @@ class Config:
         elif self.email_service == "temp_mail_plus":
             return {
                 "epin": self.temp_mail_plus_epin,
-                "extension": self.temp_mail_plus_ext
+                "extension": self.temp_mail_plus_ext,
+                "username": self.temp_mail_plus_username
             }
         elif self.email_service == "imap":
             return {
                 "server": self.imap_server,
                 "port": self.imap_port,
-                "user": self.imap_user,  # 完整的邮箱地址
+                "user": self.imap_user,
                 "password": self.imap_pass,
                 "mailbox": self.imap_dir
             }
@@ -95,7 +97,9 @@ class Config:
             "temp_mail_plus": {
                 "name": "TempMail Plus",
                 "required": [
-                    (self.temp_mail_plus_epin, "TEMP_MAIL_PLUS_EPIN")
+                    (self.temp_mail_plus_username, "TEMP_MAIL_PLUS_USERNAME"),
+                    (self.temp_mail_plus_epin, "TEMP_MAIL_PLUS_EPIN"),
+                    (self.temp_mail_plus_ext, "TEMP_MAIL_PLUS_EXT")
                 ]
             },
             "imap": {

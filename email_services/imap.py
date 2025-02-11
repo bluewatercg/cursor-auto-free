@@ -1,23 +1,40 @@
 from .base import EmailServiceBase
-from .utils import EmailGenerator
+
 import imaplib
 import email
 import re
 import time
 import logging
-import random
+
 
 class ImapService(EmailServiceBase):
     def __init__(self, config: dict):
+        """
+        初始化 IMAP 服务
+        
+        Args:
+            config: 配置信息，包含:
+                - server: IMAP 服务器地址
+                - port: IMAP 服务器端口
+                - user: IMAP 用户名/邮箱
+                - password: IMAP 密码
+                - mailbox: 邮箱文件夹(例如: inbox)
+        """
         self.server = config["server"]
         self.port = config["port"]
-        # 如果IMAP服务支持随机用户名，可以这样生成
-        random_name = EmailGenerator.generate_random_name()
-        self.user = f"{random_name}@{config['domain']}"  # 假设配置中提供了域名
+        self.user = config["user"]
         self.password = config["password"]
         self.mailbox = config["mailbox"]
         self.mail = None
+
+    def set_email_address(self, email: str):
+        """设置要接收验证码的目标邮箱地址"""
+        return self.user
         
+    def get_email_address(self) -> str:
+        """获取当前使用的邮箱地址"""
+        return self.user
+
     def get_verification_code(self, max_retries: int = 20) -> str:
         """获取验证码
         
@@ -34,14 +51,8 @@ class ImapService(EmailServiceBase):
                     time.sleep(3)
                 
                 # 连接到IMAP服务器
-                self.mail = imaplib.IMAP4_SSL(
-                    self.server, 
-                    self.port
-                )
-                self.mail.login(
-                    self.user, 
-                    self.password
-                )
+                self.mail = imaplib.IMAP4_SSL(self.server, self.port)
+                self.mail.login(self.user, self.password)
                 self.mail.select(self.mailbox)
 
                 # 搜索来自Cursor的邮件
@@ -99,10 +110,6 @@ class ImapService(EmailServiceBase):
         except Exception as e:
             logging.error(f"删除邮件失败: {str(e)}")
         return False
-        
-    def get_email_address(self) -> str:
-        """获取邮箱地址"""
-        return self.user
         
     def _extract_email_body(self, email_message) -> str:
         """提取邮件正文

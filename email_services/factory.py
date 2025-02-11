@@ -1,8 +1,8 @@
 from typing import Optional
 from .base import EmailServiceBase
 from .tempmail import TempMailService
-from .tempmail_plus import TempMailPlusService
-from .imap_service import ImapService
+from .tempmailplus import TempMailPlusService
+from .imap import ImapService
 
 class EmailServiceFactory:
     """邮件服务工厂类"""
