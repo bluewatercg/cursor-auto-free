@@ -1,0 +1,29 @@
+[project]
+name = "cursor-auto-free"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "xifan", email = "xifan233@163.com" }
+]
+dependencies = []
+readme = "README.md"
+requires-python = ">= 3.12"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+"DrissionPage==4.1.0.9",
+"colorama==0.4.6",
+"python-dotenv==1.0.0",
+"pyinstaller"
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cursor_auto_free"]

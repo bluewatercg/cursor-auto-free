@@ -19,10 +19,10 @@ from cursor_auth_manager import CursorAuthManager
 import os
 from logger import logging
 from browser_utils import BrowserManager
-from get_email_code import EmailVerificationHandler
 from logo import print_logo
 from config import Config
 from datetime import datetime
+from email_services.factory import EmailServiceFactory
 
 # 定义 EMOJI 字典
 EMOJI = {"ERROR": "❌", "WARNING": "⚠️", "INFO": "ℹ️"}
@@ -222,8 +222,19 @@ def sign_up_account(browser, tab):
             logging.info(f"已输入姓氏: {last_name}")
             time.sleep(random.uniform(1, 3))
 
-            tab.actions.click("@name=email").input(account)
-            logging.info(f"已输入邮箱: {account}")
+            # 获取邮箱地址
+            config = Config()
+            email_service = EmailServiceFactory.create_service(
+                config.email_service,
+                config.get_email_service_config()
+            )
+            email_address = email_service.get_email_address()
+            if not email_address:
+                logging.error("获取邮箱地址失败")
+                return False
+
+            tab.actions.click("@name=email").input(email_address)
+            logging.info(f"已输入邮箱: {email_address}")
             time.sleep(random.uniform(1, 3))
 
             logging.info("提交个人信息...")
@@ -262,7 +273,7 @@ def sign_up_account(browser, tab):
                 break
             if tab.ele("@data-index=0"):
                 logging.info("正在获取邮箱验证码...")
-                code = email_handler.get_verification_code()
+                code = email_service.get_verification_code()
                 if not code:
                     logging.error("获取验证码失败")
                     return False
@@ -302,7 +313,7 @@ def sign_up_account(browser, tab):
         logging.error(f"获取账户额度信息失败: {str(e)}")
 
     logging.info("\n=== 注册完成 ===")
-    account_info = f"Cursor 账号信息:\n邮箱: {account}\n密码: {password}"
+    account_info = f"Cursor 账号信息:\n邮箱: {email_address}\n密码: {password}"
     logging.info(account_info)
     time.sleep(5)
     return True
@@ -426,7 +437,6 @@ if __name__ == "__main__":
         user_agent = browser.latest_tab.run_js("return navigator.userAgent")
 
         logging.info("正在初始化邮箱验证模块...")
-        email_handler = EmailVerificationHandler()
 
         logging.info("\n=== 配置信息 ===")
         login_url = "https://authenticator.cursor.sh"

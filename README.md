@@ -1,5 +1,28 @@
 # Cursor Pro 自动化工具使用说明
 
+## 修改版变动，支持 Tempmail 服务
+
+- [Tempmail 文档](https://temp-mail-docs.awsl.uk/)
+
+## 配置示例
+
+
+```text
+DOMAIN=example.com
+# 邮件服务类型: temp_mail, temp_mail_plus, imap
+EMAIL_SERVICE=temp_mail
+
+# 邮箱服务配置
+## TempMail 配置
+TEMP_MAIL_ADMIN_PASSWORD=your_password
+TEMP_MAIL_ENABLE_PREFIX=true
+```
+
+## 代码变动
+
+将邮箱服务抽取为 Service 类，方便扩展
+
+———
 
 [English doc](./README.EN.md)
 

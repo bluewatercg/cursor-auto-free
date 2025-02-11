@@ -23,93 +23,108 @@ class Config:
         # 加载 .env 文件
         load_dotenv(dotenv_path)
 
-        self.imap = False
-        self.temp_mail = os.getenv("TEMP_MAIL", "").strip().split("@")[0]
-        self.temp_mail_epin = os.getenv("TEMP_MAIL_EPIN", "").strip()
-        self.temp_mail_ext = os.getenv("TEMP_MAIL_EXT", "").strip()
+        # 基础配置
         self.domain = os.getenv("DOMAIN", "").strip()
-
-        # 如果临时邮箱为null则加载IMAP
-        if self.temp_mail == "null":
-            self.imap = True
-            self.imap_server = os.getenv("IMAP_SERVER", "").strip()
-            self.imap_port = os.getenv("IMAP_PORT", "").strip()
-            self.imap_user = os.getenv("IMAP_USER", "").strip()
-            self.imap_pass = os.getenv("IMAP_PASS", "").strip()
-            self.imap_dir = os.getenv("IMAP_DIR", "inbox").strip()
+        self.email_service = os.getenv("EMAIL_SERVICE", "temp_mail").strip()
+        
+        # TempMail 配置
+        self.temp_mail_api_domain = f"mail.{self.domain}"  # 使用 mail.domain 作为 API 域名
+        self.temp_mail_admin_password = os.getenv("TEMP_MAIL_ADMIN_PASSWORD", "").strip()
+        self.temp_mail_domain = self.domain  # 直接使用主域名
+        self.temp_mail_enable_prefix = os.getenv("TEMP_MAIL_ENABLE_PREFIX", "true").lower() == "true"
+        
+        # TempMail Plus 配置
+        self.temp_mail_plus_username = os.getenv("TEMP_MAIL_PLUS_USERNAME", "").strip()
+        self.temp_mail_plus_epin = os.getenv("TEMP_MAIL_PLUS_EPIN", "").strip()
+        self.temp_mail_plus_domain = self.domain  # 使用相同的域名
+        self.temp_mail_plus_api_domain = f"mail.{self.domain}"  # 使用相同的 API 域名
+        
+        # IMAP 配置 - 不依赖 CF Workers，需要完整的服务器配置
+        self.imap_server = os.getenv("IMAP_SERVER", "").strip()
+        self.imap_port = os.getenv("IMAP_PORT", "").strip()
+        self.imap_user = os.getenv("IMAP_USER", "").strip()
+        self.imap_pass = os.getenv("IMAP_PASS", "").strip()
+        self.imap_dir = os.getenv("IMAP_DIR", "inbox").strip()
 
         self.check_config()
 
-    def get_temp_mail(self):
-
-        return self.temp_mail
-
-    def get_temp_mail_epin(self):
-
-        return self.temp_mail_epin
-
-    def get_temp_mail_ext(self):
-
-        return self.temp_mail_ext
-
-    def get_imap(self):
-        if not self.imap:
-            return False
-        return {
-            "imap_server": self.imap_server,
-            "imap_port": self.imap_port,
-            "imap_user": self.imap_user,
-            "imap_pass": self.imap_pass,
-            "imap_dir": self.imap_dir,
-        }
+    def get_email_service_config(self) -> dict:
+        """获取当前选择的邮件服务配置"""
+        if self.email_service == "temp_mail":
+            return {
+                "api_domain": self.temp_mail_api_domain,
+                "admin_password": self.temp_mail_admin_password,
+                "mail_domain": self.temp_mail_domain,
+                "enable_prefix": self.temp_mail_enable_prefix
+            }
+        elif self.email_service == "temp_mail_plus":
+            return {
+                "epin": self.temp_mail_plus_epin,
+                "extension": self.temp_mail_plus_ext
+            }
+        elif self.email_service == "imap":
+            return {
+                "server": self.imap_server,
+                "port": self.imap_port,
+                "user": self.imap_user,  # 完整的邮箱地址
+                "password": self.imap_pass,
+                "mailbox": self.imap_dir
+            }
+        return {}
 
     def get_domain(self):
         return self.domain
 
     def check_config(self):
-        """检查配置项是否有效
-
-        检查规则：
-        1. 如果使用 tempmail.plus，需要配置 TEMP_MAIL 和 DOMAIN
-        2. 如果使用 IMAP，需要配置 IMAP_SERVER、IMAP_PORT、IMAP_USER、IMAP_PASS
-        3. IMAP_DIR 是可选的
-        """
-        # 基础配置检查
-        required_configs = {
-            "domain": "域名",
-        }
-
+        """检查配置有效性"""
         # 检查基础配置
-        for key, name in required_configs.items():
-            if not self.check_is_valid(getattr(self, key)):
-                raise ValueError(f"{name}未配置，请在 .env 文件中设置 {key.upper()}")
-
-        # 检查邮箱配置
-        if self.temp_mail != "null":
-            # tempmail.plus 模式
-            if not self.check_is_valid(self.temp_mail):
-                raise ValueError("临时邮箱未配置，请在 .env 文件中设置 TEMP_MAIL")
-        else:
-            # IMAP 模式
-            imap_configs = {
-                "imap_server": "IMAP服务器",
-                "imap_port": "IMAP端口",
-                "imap_user": "IMAP用户名",
-                "imap_pass": "IMAP密码",
+        if not self.check_is_valid(self.domain):
+            raise ValueError("域名未配置，请在 .env 文件中设置 DOMAIN")
+        
+        if not self.check_is_valid(self.email_service):
+            raise ValueError("邮件服务类型未配置，请在 .env 文件中设置 EMAIL_SERVICE")
+        
+        # 检查当前选择的邮件服务的配置
+        service_configs = {
+            "temp_mail": {
+                "name": "TempMail",
+                "required": [
+                    (self.temp_mail_admin_password, "TEMP_MAIL_ADMIN_PASSWORD")
+                ]
+            },
+            "temp_mail_plus": {
+                "name": "TempMail Plus",
+                "required": [
+                    (self.temp_mail_plus_epin, "TEMP_MAIL_PLUS_EPIN")
+                ]
+            },
+            "imap": {
+                "name": "IMAP",
+                "required": [
+                    (self.imap_server, "IMAP_SERVER"),
+                    (self.imap_port, "IMAP_PORT"),
+                    (self.imap_user, "IMAP_USER"),
+                    (self.imap_pass, "IMAP_PASS")
+                ]
             }
-
-            for key, name in imap_configs.items():
-                value = getattr(self, key)
-                if value == "null" or not self.check_is_valid(value):
-                    raise ValueError(
-                        f"{name}未配置，请在 .env 文件中设置 {key.upper()}"
-                    )
-
-            # IMAP_DIR 是可选的，如果设置了就检查其有效性
-            if self.imap_dir != "null" and not self.check_is_valid(self.imap_dir):
-                raise ValueError(
-                    "IMAP收件箱目录配置无效，请在 .env 文件中正确设置 IMAP_DIR"
-                )
+        }
+        
+        # 获取当前服务的配置要求
+        service_config = service_configs.get(self.email_service)
+        if not service_config:
+            raise ValueError(f"不支持的邮件服务类型: {self.email_service}")
+        
+        # 检查必需的配置项
+        missing_configs = []
+        for value, name in service_config["required"]:
+            if not self.check_is_valid(value):
+                missing_configs.append(name)
+            
+        if missing_configs:
+            raise ValueError(
+                f"{service_config['name']} 配置不完整，缺少以下配置项:\n" + 
+                "\n".join(f"- {name}" for name in missing_configs)
+            )
 
     def check_is_valid(self, value):
         """检查配置项是否有效
@@ -123,16 +138,15 @@ class Config:
         return isinstance(value, str) and len(str(value).strip()) > 0
 
     def print_config(self):
-        if self.imap:
+        logging.info(f"\033[32m当前使用的邮件服务: {self.email_service}\033[0m")
+        if self.email_service == "temp_mail":
+            logging.info(f"\033[32mAPI域名: {self.temp_mail_api_domain}\033[0m")
+            logging.info(f"\033[32m邮箱域名: {self.temp_mail_domain}\033[0m")
+        elif self.email_service == "temp_mail_plus":
+            logging.info(f"\033[32m临时邮箱: {self.temp_mail_plus_username}{self.temp_mail_plus_ext}\033[0m")
+        elif self.email_service == "imap":
             logging.info(f"\033[32mIMAP服务器: {self.imap_server}\033[0m")
-            logging.info(f"\033[32mIMAP端口: {self.imap_port}\033[0m")
             logging.info(f"\033[32mIMAP用户名: {self.imap_user}\033[0m")
-            logging.info(f"\033[32mIMAP密码: {'*' * len(self.imap_pass)}\033[0m")
-            logging.info(f"\033[32mIMAP收件箱目录: {self.imap_dir}\033[0m")
-        if self.temp_mail != "null":
-            logging.info(
-                f"\033[32m临时邮箱: {self.temp_mail}{self.temp_mail_ext}\033[0m"
-            )
         logging.info(f"\033[32m域名: {self.domain}\033[0m")
 
 
