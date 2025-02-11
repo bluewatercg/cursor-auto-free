@@ -132,7 +132,6 @@ class Config:
 
     def check_is_valid(self, value):
         """检查配置项是否有效
-
         Args:
             value: 配置项的值
 
