@@ -46,10 +46,8 @@ TEMP_MAIL_ENABLE_PREFIX=true
 
 
 
-## 你让开源没有爱啊！！！！（非法商用黑名单）
-| 仓库 | 售卖方式 | 
-| ----- | ----- | 
-| [gitee海豚](https://gitee.com/ydd_energy/dolphin_-cursor) | survivor_bias_  （微信） | 
+## 骗子
+海豚
 
 
 ## 感谢 linuxDo 这个开源社区(一个真正的技术社区)

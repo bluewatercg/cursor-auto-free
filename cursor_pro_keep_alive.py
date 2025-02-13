@@ -1,8 +1,6 @@
 import os
-import platform
 import json
 import sys
-from colorama import Fore, Style
 from enum import Enum
 from typing import Optional
 
@@ -21,7 +19,6 @@ from logger import logging
 from browser_utils import BrowserManager
 from logo import print_logo
 from config import Config
-from datetime import datetime
 from email_services.factory import EmailServiceFactory
 
 # 定义 EMOJI 字典
@@ -149,6 +146,9 @@ def handle_turnstile(tab, max_retries: int = 2, retry_interval: tuple = (1, 2)) 
 
         # 超出最大重试次数
         logging.error(f"验证失败 - 已达到最大重试次数 {max_retries}")
+        logging.error(
+            "请前往开源项目查看更多信息：https://github.com/chengazhen/cursor-auto-free"
+        )
         save_screenshot(tab, "failed")
         return False
 
@@ -383,8 +383,7 @@ def check_cursor_version():
 
 def reset_machine_id(greater_than_0_45):
     if greater_than_0_45:
-        # 提示请手动执行脚本 https://github.com/chengazhen/cursor-auto-free/blob/main/patch_cursor_get_machine_id.py
-        patch_cursor_get_machine_id.patch_cursor_get_machine_id()
+        print("重置id: 请搜索go-cursor-help")
     else:
         MachineIDResetter().reset_machine_ids()
 
@@ -395,7 +394,7 @@ if __name__ == "__main__":
     browser_manager = None
     try:
         logging.info("\n=== 初始化程序 ===")
-        # ExitCursor()
+        ExitCursor()
 
         # 提示用户选择操作模式
         print("\n请选择操作模式:")
